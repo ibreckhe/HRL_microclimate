@@ -189,14 +189,20 @@ format_micro_csv <- function(csv_name) {
 
 ####Function to batch-format mixed ibutton/HOBO microclimate files in a bunch of directories.####
 batch_format_micro_csv <- function(input_paths=getwd(),output_path,file_prefixes,
-                                   metadata_name="metadata.txt",overwrite=FALSE){
+                                   output_metadata_filename="metadata.txt",overwrite=FALSE){
   
   ##Checks inputs
   stopifnot(length(input_paths)==length(file_prefixes))
-  stopifnot(length(metadata_name)==1)
+  stopifnot(length(output_metadata_filename)==1)
   stopifnot(all(dir.exists(input_paths)))
   stopifnot(dir.exists(output_path))
   stopifnot(is.logical(overwrite) & length(overwrite)==1)
+  
+  ##Deletes the existing metadata file if it exists
+  setwd(output_path)
+  if(file.exists(output_metadata_filename)){
+    file.remove(output_metadata_filename)
+  }
   
   ##Checks to see how many input files there are.
   csv_all <- c()
@@ -242,11 +248,11 @@ batch_format_micro_csv <- function(input_paths=getwd(),output_path,file_prefixes
       }
       
       # Writes the metadata, appending rows to an existing file if it already exists.
-      if (length(list.files(".",pattern=metadata_name)) == 0){
-        write.table(meta,file=metadata_name, sep=",",row.names = FALSE, append = FALSE) 
+      if (length(list.files(".",pattern=output_metadata_filename)) == 0){
+        write.table(meta,file=output_metadata_filename, sep=",",row.names = FALSE, append = FALSE) 
       }
       else{
-        write.table(meta,file=metadata_name, sep=",",row.names = FALSE, 
+        write.table(meta,file=output_metadata_filename, sep=",",row.names = FALSE, 
                     col.names = FALSE, append = TRUE)
       }
       file_n <- file_n+1
@@ -256,23 +262,23 @@ batch_format_micro_csv <- function(input_paths=getwd(),output_path,file_prefixes
 }
 
 ####Function to estimate snow cover duration from a series of .csv microclimate files.####
-batch_extract_snow_vars <- function(input_folder,meta_filename="metadata.txt",
-                                    figure_folder,output_folder,output_filename,
+batch_extract_snow_vars <- function(input_path,input_metadata_filename="metadata.txt",
+                                    figure_path,output_path,output_meta_filename,
                                     range_threshold=1,max_threshold=2,overwrite=FALSE){
   ##Loads required packages
   require(data.table)
   
   ##Checks inputs
-  stopifnot(dir.exists(input_folder))
-  stopifnot(dir.exists(figure_folder))
-  stopifnot(dir.exists(output_folder))
+  stopifnot(dir.exists(input_path))
+  stopifnot(dir.exists(figure_path))
+  stopifnot(dir.exists(output_path))
   
-  setwd(input_folder)
-  stopifnot(file.exists(meta_filename))
-  stopifnot(!file.exists(output_filename)|overwrite==TRUE)
+  setwd(input_path)
+  stopifnot(file.exists(input_metadata_filename))
+  stopifnot(!file.exists(output_meta_filename)|overwrite==TRUE)
   
   files <- list.files(".",pattern=".csv$")  # the data files for each temperature sensor to be analyzed
-  meta <- read.table(meta_filename,sep=",",header=TRUE)
+  meta <- read.table(input_metadata_filename,sep=",",header=TRUE)
   
   calibration <- c()
   calibration.type <- c()
@@ -291,7 +297,7 @@ batch_extract_snow_vars <- function(input_folder,meta_filename="metadata.txt",
   for (k in 1:nfiles) {
     
     ##Makes sure we are in the right directory
-    setwd(input_folder)
+    setwd(input_path)
     
     ##Prints progress.
     flush.console()
@@ -433,9 +439,9 @@ batch_extract_snow_vars <- function(input_folder,meta_filename="metadata.txt",
   ##Moves .csv and .pdf graphics of flagged files to new directories
   out_flagged <- out_merged[out_merged$flagged==TRUE,]
   flagged_csvs <- out_flagged$out_filename
-  setwd(output_folder)
+  setwd(output_path)
   dir.create("./flagged")
-  file.copy(paste(input_folder,"/",as.character(flagged_csvs),sep=""),"./flagged")
+  file.copy(paste(input_path,"/",as.character(flagged_csvs),sep=""),"./flagged")
   flagged_pdfs <- sub(".csv",".pdf",out_flagged$out_filename)
   setwd(figure_folder)
   dir.create("./flagged")
@@ -444,9 +450,9 @@ batch_extract_snow_vars <- function(input_folder,meta_filename="metadata.txt",
   ##Moves .csv and .pdf graphics of unflagged files to a new directory
   out_unflagged <- out_merged[out_merged$flagged==FALSE,]
   unflagged_csvs <- out_unflagged$out_filename
-  setwd(output_folder)
+  setwd(output_path)
   dir.create("./unflagged")
-  file.copy(paste(input_folder,"/",as.character(unflagged_csvs),sep=""),"./unflagged")
+  file.copy(paste(input_path,"/",as.character(unflagged_csvs),sep=""),"./unflagged")
   unflagged_pdfs <- sub(".csv",".pdf",out_unflagged$out_filename)
   setwd(figure_folder)
   dir.create("./unflagged")
@@ -456,12 +462,12 @@ batch_extract_snow_vars <- function(input_folder,meta_filename="metadata.txt",
   out_unflagged<- out_merged[out_merged$flagged==FALSE,]
   
   # Save output file
-  setwd(output_folder)
+  setwd(output_path)
   write.table(out_unflagged, file = output_filename, sep = ",", row.names = FALSE)
 }
 
-batch_clean_air_temps <- function(input_path,input_metadata_name,
-                                      output_path,output_metadata_name,
+batch_clean_air_temps <- function(input_path,input_metadata_filename,
+                                      output_path,output_metadata_filename,
                                       figure_path,
                                       guess_tz="Etc/GMT-7",
                                       temp_spike_thresh=10,
@@ -475,14 +481,14 @@ batch_clean_air_temps <- function(input_path,input_metadata_name,
   Sys.setenv(TZ=guess_tz)
   
   ##Checks inputs
-  stopifnot(length(input_metadata_name)==1)
-  stopifnot(length(output_metadata_name)==1)
+  stopifnot(length(input_metadata_filename)==1)
+  stopifnot(length(output_metadata_filename)==1)
   stopifnot(dir.exists(input_path))
   stopifnot(dir.exists(output_path))
   stopifnot(dir.exists(figure_path))
   stopifnot(is.logical(overwrite) & length(overwrite)==1)
   setwd(input_path)
-  stopifnot(file.exists(input_metadata_name))
+  stopifnot(file.exists(input_metadata_filename))
   
   ##Checks to see how many input files there are.
   airtemp_files <- list.files(input_path,pattern=".csv$")
@@ -499,7 +505,7 @@ batch_clean_air_temps <- function(input_path,input_metadata_name,
   
   ##Checks to make sure we've got the same number files as we do metadata lines
   setwd(input_path)
-  air_meta <- read.table(input_metadata_name,sep=",",header=TRUE)
+  air_meta <- read.table(input_metadata_filename,sep=",",header=TRUE)
   stopifnot(nrow(air_meta)==nfiles)
   
   print(paste("Now processing ",nfiles," air-temp files."))
@@ -604,7 +610,7 @@ batch_clean_air_temps <- function(input_path,input_metadata_name,
   
   ##Writes cleaned unflagged files to output.
   setwd(output_path)
-  write.table(meta_all,output_metadata_name,sep="\t",row.names=FALSE)
+  write.table(meta_all,output_metadata_filename,sep="\t",row.names=FALSE)
   return(metadata)
 }
 

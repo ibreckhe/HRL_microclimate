@@ -2,8 +2,13 @@
 ####Author: Ian Breckheimer
 ####Date: 15 December 2016
 
-require(data.table)
+####Set up workspace####
 setwd("~/code/HRL_microclimate/")
+source("./code/HRL_microclim_functions.R")
+
+require(data.table)
+require(xts)
+require(psych)
 
 ####Soil temperature data processing####
 
@@ -17,10 +22,10 @@ batch_format_micro_csv(input_paths=input_folders_soil,
                        output_metadata_filename="metadata_soil.txt",overwrite=FALSE)
 
 batch_extract_snow_vars(input_path="~/code/HRL_microclimate/temp/soil",
-                        input_meta_filename="metadata.txt",
+                        input_metadata_filename="metadata.txt",
                         output_path="~/code/HRL_microclimate/output/soil",
                         figure_path="~/code/HRL_microclimate/figs/soil",
-                        output_meta_filename="metadata_snow.txt",
+                        output_metadata_filename="metadata_snow.txt",
                         range_threshold=1,max_threshold=2,overwrite=FALSE)
 
 ####Air temperature data processing####
@@ -35,9 +40,9 @@ batch_format_micro_csv(input_paths=input_folders_air,
                        output_metadata_filename="metadata_air.txt",overwrite=FALSE)
 
 batch_clean_air_temps(input_path="~/code/HRL_microclimate/temp/air",
-                     input_metadata_name="metadata_air.txt",
+                     input_metadata_filename="metadata_air.txt",
                      output_path="~/code/HRL_microclimate/output/air",
-                     output_metadata_name="metadata_flags_air.txt",
+                     output_metadata_filename="metadata_flags_air.txt",
                      figure_path="~/code/HRL_microclimate/figs/air",
                      guess_tz="Etc/GMT-7",temp_spike_thresh=10,
                      min_temp_thresh=-20,max_temp_thresh=50,max_temp_hr=17,
