@@ -458,5 +458,153 @@ batch_extract_snow_vars <- function(input_folder,meta_filename="metadata.txt",
   # Save output file
   setwd(output_folder)
   write.table(out_unflagged, file = output_filename, sep = ",", row.names = FALSE)
-  return(out_merged)
 }
+
+batch_clean_air_temps <- function(input_path,input_metadata_name,
+                                      output_path,output_metadata_name,
+                                      figure_path,
+                                      guess_tz="Etc/GMT-7",
+                                      temp_spike_thresh=10,
+                                      min_temp_thresh=-20,
+                                      max_temp_thresh=50,
+                                      max_temp_hr=17,
+                                      overwrite=TRUE){
+  ##Sets up workspace
+  require(xts)
+  require(psych)
+  Sys.setenv(TZ=guess_tz)
+  
+  ##Checks inputs
+  stopifnot(length(input_metadata_name)==1)
+  stopifnot(length(output_metadata_name)==1)
+  stopifnot(dir.exists(input_path))
+  stopifnot(dir.exists(output_path))
+  stopifnot(dir.exists(figure_path))
+  stopifnot(is.logical(overwrite) & length(overwrite)==1)
+  setwd(input_path)
+  stopifnot(file.exists(input_metadata_name))
+  
+  ##Checks to see how many input files there are.
+  airtemp_files <- list.files(input_path,pattern=".csv$")
+  nfiles <- length(airtemp_files)
+  
+  ##Creates folders for output
+  setwd(output_path)
+  if(!dir.exists("./flagged")){
+    dir.create("./flagged")
+  }
+  if(!dir.exists("./unflagged")){
+    dir.create("./unflagged")
+  }
+  
+  ##Checks to make sure we've got the same number files as we do metadata lines
+  setwd(input_path)
+  air_meta <- read.table(input_metadata_name,sep=",",header=TRUE)
+  stopifnot(nrow(air_meta)==nfiles)
+  
+  print(paste("Now processing ",nfiles," air-temp files."))
+  
+  ##Sets up a file counter.
+  file_n <- 0
+  
+  ##Creates empty data frame for metadata.
+  nfiles <- length(airtemp_files)
+  metadata <- data.frame(filename=rep("NA",nfiles),
+                         cleaned_min=rep(NA,nfiles),
+                         cleaned_max=rep(NA,nfiles),
+                         mean_hr_max=rep(NA,nfiles),
+                         flag_missing_data=rep(NA,nfiles),
+                         flag_wrong_tz=rep(NA,nfiles))
+  
+  metadata$filename <- as.character(metadata$filename)
+  
+  for (i in 1:length(airtemp_files)){
+    
+    # Ensures we are looking at the right directory
+    setwd(input_path)
+    
+    # Prints progress to console.
+    flush.console()
+    print(paste("Now processing ",airtemp_files[i],". File ",i," of ",
+                length(airtemp_files)))
+    #Reads data and converts to date and time-series format.
+    data <- read.csv(airtemp_files[i],header=TRUE)
+    data <- data[complete.cases(data),]
+    data$datestring <- paste(data$YEAR,data$MONTH,data$DAY,sep="-")
+    data$timestring <- paste(data$HOUR,data$MIN,"00",sep=":")
+    data$datetime <- strptime(paste(data$datestring,data$timestring),
+                              format="%Y-%m-%d %H:%M:%S",tz=guess_tz)
+    tempts <- xts(data$TEMP,order.by=data$datetime)
+    tzone(tempts) <- "Etc/GMT-7"
+    
+    # Save figure as pdf
+    setwd(figure_path)
+    plotname <- strsplit(airtemp_files[i], ".csv")[[1]]
+    figpath <- paste(figure_path,plotname,".pdf", sep = "")
+    pdf(file = figpath, width = 10, height = 7)
+    
+    # Left Y axis
+    par(mar = c(4, 6, 3, 6))
+    plot(data$datetime,data$TEMP,type='l', main = plotname, xlab='Date', 
+         ylab=expression(paste("Temperature", degree, "C")),col='blue',
+         axes = T,ylim=c(-10,35),pch = 20)  
+    dev.off()
+    
+    ## Checks for and eliminates values outside of the physical range 
+    ## and temperature spikes that could be caused by direct sun.
+    tempts[tempts < min_temp_thresh] <- NA
+    tempts[tempts > max_temp_thresh] <- NA
+    tlagged <- lag.xts(tempts,k=1)
+    delta <- tempts-tlagged
+    tempts[delta > temp_spike_thresh] <- NA
+    
+    ##Calculates the circadian mean hour of the day with the maximum temperature.
+    hr_max_ts <- do.call(rbind, lapply(split(tempts,"days"), function(x) x[which.max(x)]))
+    hrs <- as.numeric(format(index(hr_max_ts),format="%H"))
+    mean_hr_max <- circadian.mean(hrs,hours=TRUE)
+    
+    ##Flags time-series with problems
+    if(sum(is.na(tempts)) > 10){
+      flag_missing_values <- TRUE
+    }else{
+      flag_missing_values <- FALSE
+    }
+    
+    if((mean_hr_max-max_temp_hr) > 4 | (mean_hr_max-max_temp_hr) < -4){
+      flag_wrong_tz <- TRUE
+    }else{
+      flag_wrong_tz <- FALSE
+    }
+    outts <- data.frame(DATE=index(tempts),TZ=air_meta$tz[i],TEMP=tempts)
+    setwd(output_path)
+    if(flag_missing_values==FALSE & flag_wrong_tz==FALSE){
+      write.csv(outts,paste("./unflagged/",airtemp_files[i]),row.names=FALSE)
+    }else{
+      write.csv(outts,paste("./flagged/",airtemp_files[i]),row.names=FALSE)
+    }
+    
+    ##Assembles metadata.
+    metadata$filename[i] <- airtemp_files[i]
+    
+    ## Gets the cleaned temp range
+    metadata$cleaned_min[i] <- min(tempts,na.rm=TRUE)
+    metadata$cleaned_max[i] <- max(tempts,na.rm=TRUE)
+    
+    ## Gets the hour of mean temperature.
+    metadata$mean_hr_max[i] <- mean_hr_max
+    
+    metadata$flag_missing_data[i] <- flag_missing_values 
+    metadata$flag_wrong_tz[i] <- flag_wrong_tz
+  }
+  
+  metadata_unflagged <- metadata[metadata$flag_missing_data==FALSE &
+                                 metadata$flag_wrong_tz==FALSE,]
+  
+  meta_all <- merge(air_meta,metadata_unflagged,by.x="out_filename",by.y="filename",all.x=T)
+  
+  ##Writes cleaned unflagged files to output.
+  setwd(output_path)
+  write.table(meta_all,output_metadata_name,sep="\t",row.names=FALSE)
+  return(metadata)
+}
+
