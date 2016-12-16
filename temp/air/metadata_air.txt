@@ -1,0 +1,5 @@
+"out_filename","filename","filepath","n_measurements","log_interval","date_min","date_max","date_lab","temp_min","temp_max","hobo","ibutton","formatted","datetime","tz"
+"Ian_air_AM16-STR-A1_2013-08-2014-07.csv","AM16-STR-A1","/Users/ian/code/HRL_microclimate/data/test_data/air_2014/AM16-STR-A1.csv",3973,2,2013-08-14 11:00:00,2014-07-11 12:17:50,"2013-08-2014-07",-17.618,27.468,TRUE,FALSE,FALSE,FALSE,"PDT"
+"Ian_air_AV14-STR-A1_2013-08-2014-07.csv","AV14-STR-A1","/Users/ian/code/HRL_microclimate/data/test_data/air_2014/AV14-STR-A1.csv",3981,2,2013-08-19 17:00:00,2014-07-17 09:36:53,"2013-08-2014-07",-14.648,25.319,TRUE,FALSE,FALSE,FALSE,"PDT"
+"Ian_air_AM16-STR-A1_2014-09-2015-07.csv","AM16-STR-A1","/Users/ian/code/HRL_microclimate/data/test_data/air_2015/AM16-STR-A1.csv",3825,2,2014-09-11 22:40:01,2015-07-27 14:40:01,"2014-09-2015-07",-11.529,30.595,FALSE,TRUE,FALSE,FALSE,"PDT"
+"Ian_air_AV14-STR-A1_2014-09-2015-07.csv","AV14-STR-A1","/Users/ian/code/HRL_microclimate/data/test_data/air_2015/AV14-STR-A1.csv",3552,2,2014-09-20 17:00:00,2015-07-13 16:56:17,"2014-09-2015-07",-9.799,26.585,TRUE,FALSE,FALSE,FALSE,"PDT"
