@@ -258,12 +258,18 @@ batch_format_micro_csv <- function(input_paths=getwd(),output_path,file_prefixes
       file_n <- file_n+1
       print(paste("Completed processing file ",file_n," of ",nfiles))
     }
+    
   }
+  
+  ##Returns output metadata
+  setwd(output_path)
+  meta_output <- read.csv(output_metadata_filename)
+  return(meta_output)
 }
 
 ####Function to estimate snow cover duration from a series of .csv microclimate files.####
 batch_extract_snow_vars <- function(input_path,input_metadata_filename="metadata.txt",
-                                    figure_path,output_path,output_meta_filename,
+                                    figure_path,output_path,output_metadata_filename,
                                     range_threshold=1,max_threshold=2,overwrite=FALSE){
   ##Loads required packages
   require(data.table)
@@ -275,7 +281,7 @@ batch_extract_snow_vars <- function(input_path,input_metadata_filename="metadata
   
   setwd(input_path)
   stopifnot(file.exists(input_metadata_filename))
-  stopifnot(!file.exists(output_meta_filename)|overwrite==TRUE)
+  stopifnot(!file.exists(output_metadata_filename)|overwrite==TRUE)
   
   files <- list.files(".",pattern=".csv$")  # the data files for each temperature sensor to be analyzed
   meta <- read.table(input_metadata_filename,sep=",",header=TRUE)
@@ -375,7 +381,7 @@ batch_extract_snow_vars <- function(input_path,input_metadata_filename="metadata
     ## PLOT SOIL TEMPERATURE AND THE SNOW COVER ALGORITHM OUTPUT TO MAKE SURE OUTPUT IS REASONABLE
     
     # Save figure as pdf
-    setwd(figure_folder)
+    setwd(figure_path)
     population <- strsplit(files[k], ".csv")[[1]]
     graph.file <- paste(population, ".pdf", sep = "")
     pdf(file = graph.file, width = 10, height = 7)
@@ -443,7 +449,7 @@ batch_extract_snow_vars <- function(input_path,input_metadata_filename="metadata
   dir.create("./flagged")
   file.copy(paste(input_path,"/",as.character(flagged_csvs),sep=""),"./flagged")
   flagged_pdfs <- sub(".csv",".pdf",out_flagged$out_filename)
-  setwd(figure_folder)
+  setwd(figure_path)
   dir.create("./flagged")
   file.copy(flagged_pdfs,"./flagged")
   
@@ -454,7 +460,7 @@ batch_extract_snow_vars <- function(input_path,input_metadata_filename="metadata
   dir.create("./unflagged")
   file.copy(paste(input_path,"/",as.character(unflagged_csvs),sep=""),"./unflagged")
   unflagged_pdfs <- sub(".csv",".pdf",out_unflagged$out_filename)
-  setwd(figure_folder)
+  setwd(figure_path)
   dir.create("./unflagged")
   file.copy(unflagged_pdfs,"./unflagged")
   
@@ -463,7 +469,8 @@ batch_extract_snow_vars <- function(input_path,input_metadata_filename="metadata
   
   # Save output file
   setwd(output_path)
-  write.table(out_unflagged, file = output_filename, sep = ",", row.names = FALSE)
+  write.table(out_unflagged, file = output_metadata_filename, sep = ",", row.names = FALSE)
+  return(out_merged)
 }
 
 batch_clean_air_temps <- function(input_path,input_metadata_filename,

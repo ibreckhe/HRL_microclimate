@@ -1,6 +1,9 @@
-####Script to test HRL microclimate functions.
+####Script to demonstrate HRL microclimate data processing functions.
 ####Author: Ian Breckheimer
 ####Date: 15 December 2016
+
+####For additional details about these functions and how to use them, 
+####please read the accompanying documentation "HRL_microclim_example.html"
 
 ####Set up workspace####
 setwd("~/code/HRL_microclimate/")
@@ -13,16 +16,16 @@ require(psych)
 ####Soil temperature data processing####
 
 ##Paths of folders to process (all must be absolute paths)
-input_folders_soil <- c("~/code/HRL_microclimate/data/test_data/soil_2014/",
+input_paths_soil <- c("~/code/HRL_microclimate/data/test_data/soil_2014/",
                    "~/code/HRL_microclimate/data/test_data/soil_2015/")
 
-batch_format_micro_csv(input_paths=input_folders_soil,
+batch_format_micro_csv(input_paths=input_paths_soil,
                        output_path="~/code/HRL_microclimate/temp/soil",
                        file_prefixes=c("Ian_soil","Ian_soil"),
                        output_metadata_filename="metadata_soil.txt",overwrite=FALSE)
 
 batch_extract_snow_vars(input_path="~/code/HRL_microclimate/temp/soil",
-                        input_metadata_filename="metadata.txt",
+                        input_metadata_filename="metadata_soil.txt",
                         output_path="~/code/HRL_microclimate/output/soil",
                         figure_path="~/code/HRL_microclimate/figs/soil",
                         output_metadata_filename="metadata_snow.txt",

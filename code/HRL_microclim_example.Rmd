@@ -1,0 +1,140 @@
+---
+title: "Microclimate Data Processing"
+author: "Ian Breckheimer"
+date: "12/16/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Tools for formatting and cleaning microclimate data
+
+Data from microclimate sensors is often fairly simple in structure (csv formatted text files with dates, times, and measurements). Annoyingly, however, different sensor models, software versions, system settings, and research protocols create small differences in the formatting of the files that make them difficult to process efficiently, especially when combining data from several different studies, as I did for the [MORAclim project](http://tinyplant.org/blog/2016/07/22/MORAclim-intro/).
+
+To simplify and accelerate this process, I've developed [a set of R functions](https://github.com/ibreckhe/HRL_microclimate) that streamlines formatting, cleaning, and summarizing of microclimate data. Currently, the code is fairly specific to the sensor types and protocols that we use in the [HRL lab](https://faculty.washington.edu/jhrl/Index.html) (Onset HOBO and OneWire iButton sensors), but the general strategy might be helpful for other groups that deal with this sort of data a lot. Eventually, we might put this together into an R package, but for now, it's just a set of (relatively sparsely documented) functions available in a [public GitHub repository](https://github.com/ibreckhe/HRL_microclimate). In this post, I'll run through basic usage of the tools and explain a little bit of what's going on under the hood.
+
+I want to acknowledge that this effort builds on the work of other HRL lab scientists, including Kevin Ford and Steve Kroiss.
+
+I've divided up the functions into two categories: data formatting, and data cleaning. The data formatting tools can be used to bring data from different sensor types into a common and consistent format that can be easily cleaned. The data cleaning tools take files that are in this common format and extract useful statistics from them, focusing on stats that can be used to identify potential problems in the data such as sensor failures or unreasonable values. The data formatting tools can be used on multiple data types (i.e. air temperature and soil temperature), but the data cleaning tools are specific to the type of measurement that the sensor is taking. This is because the different measurement types tend to have different types of problems and different ranges of reasonable values.
+
+## Usage example
+
+In this example, I'll take you through a basic workflow that I use to clean and consolidate data for my own work using these functions. To follow along, download or clone this repository to your own machine and open up the `HRL_microclim_example.R` document in Rstudio or your IDE of choice.
+
+First we'll have to set the workspace, source the script that contains the workhorse functions, and load a few packages that are required for the underlying functions to work.
+
+```{r workspace, eval=FALSE}
+####Set up workspace####
+setwd("~/code/HRL_microclimate/")
+source("./code/HRL_microclim_functions.R")
+
+require(data.table)
+require(xts)
+require(psych)
+```
+
+Next let's take a look at how the data is structured. I'm processing two different types of files: measurements of air temperature, and measurements of soil surface temperature, for two different years, 2014 and 2015. The input folder and file structure looks like this: 
+
+![](../plots/test_data_structure.png)
+
+The data is in four different folders representing files downloaded from the different types of sensors in the two different years. I'm going to start with the soil temperature measurements, which come from HOBO pendant data loggers located on the soil surface.
+
+## Formatting data
+
+The first task is to take these files and consolidate them into a common format. This is done by using the function `batch_format_micro_csv()`. This function takes a list of files (technically a character vector of file paths), and processes all of the files in those folders that have a `.csv` extension. In this example, we've got two paths that represent soil measurements from two different years. 
+
+```{r paths, eval=FALSE}
+input_paths_soil <- c("~/code/HRL_microclimate/data/test_data/soil_2014/",
+                   "~/code/HRL_microclimate/data/test_data/soil_2015/")
+```
+
+Note that these need to be *absolute paths*, so you should replace the `~/code/` part of the path with the correct path on your own machine. Also, the functions will check to make sure that the specified input and output paths already exist. In this example, I've already created empty directories to hold output and temporary files.
+
+Next we set up the rest of the arguments to the function:
+
+```{r csv processing1, eval=FALSE}
+snow_formatted <- batch_format_micro_csv(input_paths=input_paths_soil,
+                                         output_path="~/code/HRL_microclimate/temp/soil",
+                                         file_prefixes=c("Ian_soil","Ian_soil"),
+                                         output_metadata_filename="metadata_soil.txt",
+                                         overwrite=FALSE)
+```
+
+The `output_path` argument sets the folder where the formatted files will be written, the `file_prefixes` argument defines the character string that will be appended to the beginning of the files from each folder. This is useful for identifying files from a particular study. Finally, the `output_metadata_filename` argument sets the name of the file where summary statistics will be written about each of the files that is processed. If the argument `overwrite` is `FALSE`, then the function will skip writing formatted files if they already exist.
+
+After running this function, new files appear in the output folder (`/temp/soil`)
+
+![](../plots/test_temp_files.png)
+
+These files now have names that contain some more information. The first part of the name, `Ian_air`, is the prefix we specified in the function. The middle part, `AM16-STR-S1`,is the name of the original file. The last part `2013-08-2014-07' represents the month and year of the first and last measurements, respectively. This helps prevent the script from overwriting data from files that share the same name, but contain data from different spans of time.
+
+The function also creates an output file (in this case `metadata_soil.csv`) with additional information about each of the files that were processed, including the number of measurements, the logging interval (in hours), the minimum and maximum values recorded, and some guesses about the time zone of the measurements and which type of sensor collected the data. This information is extracted from the file header, if it is available.
+
+If you want to examine this metadata from within R, just save the function call to a new variable (like `snow_formatted` as in the example above).
+
+## Cleaning and checking the data
+
+Now that we have put all of the files into a consistent format, we can check the data and extract additional metadata from the files. We've got a dedicated function for this `batch_extract_snow_vars()`. This function loops through each of the input files, runs a series of checks, and then extracts some information about snow cover in each of the files. Here's the syntax for our example
+
+```{r snow processing, eval=FALSE}
+snow_processed <- batch_extract_snow_vars(input_path="~/code/HRL_microclimate/temp/soil",
+                                            input_metadata_filename="metadata_soil.txt",
+                                            output_path="~/code/HRL_microclimate/output/soil",
+                                            figure_path="~/code/HRL_microclimate/figs/soil",
+                                            output_metadata_filename="metadata_snow.txt",
+                                            range_threshold=1,max_threshold=2,overwrite=FALSE)
+```
+
+Data that passes the series of checks (indicating that there are no known problems with the data), are copied to the output path in a subfolder `unflagged`, while the files that don't pass these tests are copied to a different folder `flagged`. Extracted snow statistics are stored in the file specified by the `output_metadata_filename` argument. The function also creates a series of plots (stored in the `figure_path`) that helps to diagnose problems with the data. 
+
+The snow cover algorithm relies on the insulating properties of snow, which causes soil surface temperature measurements to be constant near zero Celsius, at least in maritime mountain environments with large snowpacks like the Sierra Nevada ([Raleigh et al. 2013](http://www.sciencedirect.com/science/article/pii/S0034425712003768)), and Cascades ([Ford et. al. 2013](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0065008)). In this algorithm, days with a temperature range less than a specified threshold (1 degree C in the example above), and a maximum temperature less than a specified threshold (2 degrees C in the example above), are considered to be covered by snow. The default thresholds work well for our study sites in Mt. Rainier National Park, but you should review the output to make sure that they are working properly.
+
+The best way we've found to do this is by reviewing the data visually. Here is an example of a plot where the algorithm seems to be performing well. You can see the near-constant temperatures recorded when the soil surface is covered by snow (indicated by red dots), and the algorithm detects these days well (indicated by blue dots at the top of the plot).
+
+![](../plots/soil_temp.png)
+
+The most important output of this function is the output metadata file (`metadata_snow.txt`), which has summary statistics for each of the files that passes the data quality checks, including the first date with snow, the last date with snow, the number of days of snow cover, and the minimum soil temperature recorded in the file. The function also returns this metadata, so if you store it in a variable (as in the example above), you can then process it further from within R.
+
+## Processing air temperature data.
+
+The procedure for processing air temperature data is similar to that of soil temperature, except we will use a different dedicated function for data cleaning, `batch_clean_air_temps` that has specific checks and outputs relevant to air temperature. Here's the whole procedure:
+
+```{r air temp processing,eval=FALSE}
+##Paths of folders to process (all must be absolute paths)
+input_folders_air <- c("~/code/HRL_microclimate/data/test_data/air_2014/",
+                        "~/code/HRL_microclimate/data/test_data/air_2015/")
+
+air_formatted <- batch_format_micro_csv(input_paths=input_folders_air,
+                                         output_path="~/code/HRL_microclimate/temp/air",
+                                         file_prefixes=c("Ian_air","Ian_air"),
+                                         output_metadata_filename="metadata_air.txt",overwrite=FALSE)
+
+air_cleaned <- batch_clean_air_temps(input_path="~/code/HRL_microclimate/temp/air",
+                                       input_metadata_filename="metadata_air.txt",
+                                       output_path="~/code/HRL_microclimate/output/air",
+                                       output_metadata_filename="metadata_flags_air.txt",
+                                       figure_path="~/code/HRL_microclimate/figs/air",
+                                       guess_tz="Etc/GMT-7",temp_spike_thresh=10,
+                                       min_temp_thresh=-20,max_temp_thresh=50,max_temp_hr=17,
+                                       overwrite=TRUE)
+```
+
+The last function call checks the data and creates plots and output metadata for the air temperature files. This function does three things to ensure data quality:
+
+*1. Removes unphysical values.* Low battery or fluctuations in voltage can cause erroneous data to be recorded to memory, often stored as extremely high or extremely low temperatures. This function removes all measurements that are below `min_temp_thresh` or above `max_temp_thresh`.
+
+*2. Removes sudden temperature spikes.* If the sensor gets direct sun because of a problem with radiation shielding, this will often manifest as a sudden spike in temperatures. The function looks for these sudden changes and removes measurements that are right after increases larger than `temp_spike_thresh`.
+
+*3. Flags possible time-zone problems.* The function measures the average time of day of maximum temperatures, and flags files where that time of day is more than two hours different from `max_temp_hr`. In temperate North America, this maximum typically falls in the late afternoon (hour 17, or 5:00pm).
+
+## Other tips for successful data processing.
+
+This simple example shows the typical usage of the microclimate data processing scripts, and also models some best-practices for working with this data. Here are a few other tips that have helped me:
+
+*1. Do not move the original files.* It is easy to accidentally overwrite files with similar names if you change the folder structure. This script works with data in it's original folders, and outputs compiled data to a temporary location.
+
+*2. Do not modify the files in Microsoft Excel.* Although it's convenient to open these files in Excel or another spreadsheet program, my experience is that modifying them in Excel (and saving the changes) causes all kinds of problems with dates and column header formatting.
+
+*3. Always review plots of the data.* The automated checks in these functions are useful for identifying common potential problems in the data, but are unlikely to catch every conceivable kind of problem. There is really no substitute for examining the data visually, and these data cleaning functions output sets of plots that can be used for this purpose.
