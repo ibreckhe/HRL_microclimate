@@ -6,7 +6,7 @@
 ####please read the accompanying documentation "HRL_microclim_example.html"
 
 ####Set up workspace####
-project_dir <- "~/code/HRL_microclimate/"
+project_dir <- "~/code/HRL_microclimate/" ##must have trailing slash
 setwd(project_dir)
 source("./code/HRL_microclim_functions.R")
 

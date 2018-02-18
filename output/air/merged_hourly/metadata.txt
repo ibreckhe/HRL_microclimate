@@ -1,0 +1,3 @@
+"merged_sitename","input_files","n_input_files","n_meas","output_filename","start_datetime","end_datetime","study","site_name","sub_site","Lon","Lat"
+"AM16-STR-A1","Ian_air_AM16-STR-A1_2013-08-2014-07.csv Ian_air_AM16-STR-A1_2014-09-2015-07.csv",2,17092,"~/code/HRL_microclimate/output/air/merged_hourly//AM16-STR-A1_2013_08_14_2015_07_27_hourly.csv","2013-08-14 11:00:00","2015-07-27 14:00:00","Breckheimer","AM16-STR","A1",-121.7572537,46.77050174
+"AV14-STR-A1","Ian_air_AV14-STR-A1_2013-08-2014-07.csv Ian_air_AV14-STR-A1_2014-09-2015-07.csv",2,16631,"~/code/HRL_microclimate/output/air/merged_hourly//AV14-STR-A1_2013_08_19_2015_07_13_hourly.csv","2013-08-19 17:00:00","2015-07-13 15:00:00","Breckheimer","AV14-STR","A1",-121.8479891,46.96102408
