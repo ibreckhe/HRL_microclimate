@@ -34,6 +34,7 @@ clean_soil_temps(input_path=paste(project_dir,"temp/soil",sep=""),
                 figure_path=paste(project_dir,"figs/soil",sep=""),
                 guess_tz="Etc/GMT-7",temp_spike_thresh=20,
                 min_temp_thresh=-20,max_temp_thresh=60,max_temp_hr=17,
+                cf_test_params=c(40,160,20,30),
                 overwrite=TRUE)
 
 ##Extracts summary snow variables. Takes files formatted by clean_soil_temps.
@@ -108,6 +109,7 @@ clean_air_temps(input_path=paste(project_dir,"temp/air",sep=""),
                figure_path=paste(project_dir,"figs/air",sep=""),
                guess_tz="Etc/GMT-7",temp_spike_thresh=10,
                min_temp_thresh=-20,max_temp_thresh=50,max_temp_hr=17,
+               cf_test_params=c(40,100,-5,20),
                overwrite=TRUE)
 
 ##Merges time-series for known sensor locations.

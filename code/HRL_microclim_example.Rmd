@@ -105,6 +105,7 @@ clean_soil_temps(input_path=paste(project_dir,"temp/soil",sep=""),
                 figure_path=paste(project_dir,"figs/soil",sep=""),
                 guess_tz="Etc/GMT-7",temp_spike_thresh=20,
                 min_temp_thresh=-20,max_temp_thresh=60,max_temp_hr=17,
+                cf_test_params=c(40,160,20,30),
                 overwrite=TRUE)
 ```
 
@@ -116,7 +117,7 @@ The cleaning functions address several different types of common problems in mic
 
 *2. Remove sudden temperature spikes.* If the sensor gets direct sun because of a problem with radiation shielding, this will often manifest as a sudden spike in temperatures. The function looks for these sudden changes and removes measurements that are right after increases larger than `temp_spike_thresh`.
 
-*3. Detect and correct C/F problems.* If sensors mistakenly are set to record temperatures in Fahrenheit instead of Celcius, then the resulting files have particular unusual ranges of minimum and maximum temperatures. The function detects these problems, and converts the data to Celcius.
+*3. Detect and correct C/F problems.* If sensors mistakenly are set to record temperatures in Fahrenheit instead of Celcius, then the resulting files have particular unusual ranges of minimum and maximum temperatures. The function detects these problems, and converts the data to Celcius. The argument `cf_test_params` controls the 4 temperature thresholds used in these tests. Measurements are likely in Fahrenheit if the maximum temperature is greater than [1], the maximum temperature is less than [2], the minimum temperature is less than [3] and the mean temperature is greater than [4].
 
 *4. Remove lab-based measurements* Sometimes sensors start recording before they are deployed in the field, or continue to record once they are brought back to the lab. The cleaning functions look for days with constant temperatures near the typical lab conditions of 24C and remove measurements from those days. The function also removes data from one day preceding and following these lab days, with the assumption that they reprsent the days in which the sensor was deployed.
 
@@ -241,6 +242,7 @@ clean_air_temps(input_path=paste(project_dir,"temp/air",sep=""),
                figure_path=paste(project_dir,"figs/air",sep=""),
                guess_tz="Etc/GMT-7",temp_spike_thresh=10,
                min_temp_thresh=-20,max_temp_thresh=50,max_temp_hr=17,
+               cf_test_params=c(40,100,-5,20),
                overwrite=TRUE)
 
 ##Merges time-series for known sensor locations.

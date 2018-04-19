@@ -810,6 +810,11 @@ extract_snow_summaries <- function(input_path = NULL,
 
 ##      max_temp_hr - the expected hour of maximum temperature. Usually in the afternoon (hours 13 - 15).
 
+##      cf_test_params - 4-element numeric vector controlling tests for data that is recorded in Fahrenheit.
+##                       Measurements are likely in Fahrenheit if the maximum temperature is greater than
+##                       [1], the maximum temperature is less than [2], the minimum temperature is less
+##                       than [3] and the mean temperature is greater than [4].
+
 ##      overwrite - if TRUE, overwrite output files if they exist.
 
 clean_air_temps <- function(input_path = NULL,
@@ -824,6 +829,7 @@ clean_air_temps <- function(input_path = NULL,
                             min_temp_thresh=-20,
                             max_temp_thresh=50,
                             max_temp_hr=17,
+                            cf_test_params=c(40,100,-5,20),
                             overwrite=TRUE){
   ##Sets up workspace
   require(xts)
@@ -841,7 +847,9 @@ clean_air_temps <- function(input_path = NULL,
   stopifnot(file.exists(input_metadata_filename))
   stopifnot(guess_tz %in% OlsonNames())
   stopifnot(out_tz %in% OlsonNames())
-  
+  stopifnot(length(cf_test_params)==4)
+  stopifnot("numeric" %in% class(cf_test_params))
+    
   ##Checks to see how many input files there are.
   airtemp_files <- list.files(input_path,pattern=".csv$")
   nfiles <- length(airtemp_files)
@@ -929,8 +937,8 @@ clean_air_temps <- function(input_path = NULL,
     tzone(tempts) <- out_tz
     
     ## Checks for and corrects Celcius / Fahrenheit problems
-    if(max(tempts) > 40 & max(tempts) < 100 & min(tempts) > -5 &
-       mean(tempts) > 20){
+    if(max(tempts) > cf_test_params[1] & max(tempts) < cf_test_params[2] &
+       min(tempts) > cf_test_params[3] & mean(tempts) > cf_test_params[2]){
       print(paste("Found possible C / F problem, correcting..."))
       tempts <- (tempts - 32) * (5/9)
     }
@@ -1279,6 +1287,11 @@ compile_airtemp_daily <- function(input_path,
 
 ##      max_temp_hr - the expected hour of maximum temperature. Usually in the afternoon (hours 13 - 15).
 
+##      cf_test_params - 4-element numeric vector controlling tests for data that is recorded in Fahrenheit.
+##                       Measurements are likely in Fahrenheit if the maximum temperature is greater than
+##                       [1], the maximum temperature is less than [2], the minimum temperature is less
+##                       than [3] and the mean temperature is greater than [4].
+
 ##      overwrite - if TRUE, overwrite output files if they exist.
 
 clean_soil_temps <- function(input_path = NULL,
@@ -1293,6 +1306,7 @@ clean_soil_temps <- function(input_path = NULL,
                             min_temp_thresh=-20,
                             max_temp_thresh=70,
                             max_temp_hr=17,
+                            cf_test_params=c(40,160,20,30),
                             overwrite=TRUE){
   ##Sets up workspace
   require(xts)
@@ -1458,10 +1472,9 @@ clean_soil_temps <- function(input_path = NULL,
       print(paste("Assuming GMT-4, mean max temp now at",mean_hr_max))
     }
     
-    
     ## Checks for and corrects Celcius / Fahrenheit problems
-    if(max(tempts) > 40 & max(tempts) < 160 & min(tempts) > 20 &
-       mean(tempts) > 30){
+    if(max(tempts) > cf_test_params[1] & max(tempts) < cf_test_params[2] &
+       min(tempts) > cf_test_params[3] & mean(tempts) > cf_test_params[2]){
       print(paste("Found possible C / F problem, correcting..."))
       tempts <- (tempts - 32) * (5/9)
     }

@@ -195,6 +195,7 @@ require(psych)</code></pre>
                 figure_path=paste(project_dir,&quot;figs/soil&quot;,sep=&quot;&quot;),
                 guess_tz=&quot;Etc/GMT-7&quot;,temp_spike_thresh=20,
                 min_temp_thresh=-20,max_temp_thresh=60,max_temp_hr=17,
+                cf_test_params=c(40,160,20,30),
                 overwrite=TRUE)</code></pre>
 <p>The function takes a folder path containing formatted files as input, along with a metadata file created by <code>format_micro_csv()</code>. It outputs cleaned data in two folders added to the output path <code>flagged</code> and <code>unflagged</code>. The <code>unflagged</code> folder contains data that has passed all the data quality checks, and the <code>flagged</code> folder contains files that have remaining problems that could not be corrected by the cleaning function. The function also creates plots of each cleaned data file. It’s always a good idea to review all of these plots and make sure that all of the data looks reasonable.</p>
 <p>The cleaning functions address several different types of common problems in microclimate time-series. Here’s what they do:</p>
@@ -209,11 +210,11 @@ require(psych)</code></pre>
 <h2>Extracting snow variables.</h2>
 <p>Once we’ve got cleaned data, we are ready to extract summary information from the files. In this case, I’m particularly interested in extracting information on the seasonal timing of snow melt for each site. We’ve got a dedicated function for this <code>extract_snow_summaries()</code>. This function loops through each of the input files, runs a series of additional checks, and then extracts information about snow cover in each of the files. Here’s the syntax for our example</p>
 <pre class="r"><code>snow_summaries &lt;- extract_snow_summaries(input_path=paste(project_dir,&quot;output/soil/clean_unflagged&quot;,sep=&quot;&quot;),
-                                        input_metadata_filename=paste(project_dir,&quot;output/soil/metadata_flags_soil.txt&quot;,sep=&quot;&quot;),
-                                        output_path=paste(project_dir,&quot;output/soil&quot;,sep=&quot;&quot;),
-                                        figure_path=paste(project_dir,&quot;figs/soil&quot;,sep=&quot;&quot;),
-                                        output_metadata_filename=&quot;metadata_flags_snow.txt&quot;,
-                                        range_threshold=1,max_threshold=2,overwrite=TRUE)</code></pre>
+                        input_metadata_filename=paste(project_dir,&quot;output/soil/metadata_flags_soil.txt&quot;,sep=&quot;&quot;),
+                        output_path=paste(project_dir,&quot;output/soil&quot;,sep=&quot;&quot;),
+                        figure_path=paste(project_dir,&quot;figs/soil&quot;,sep=&quot;&quot;),
+                        output_metadata_filename=&quot;metadata_flags_snow.txt&quot;,
+                        range_threshold=1,max_threshold=2,overwrite=TRUE)</code></pre>
 <p>Data that passes the series of checks (indicating that there are no known problems with the data), are copied to the output path in a subfolder <code>unflagged</code>, while the files that don’t pass these tests are copied to a different folder <code>flagged</code>. Extracted snow statistics are stored in the file specified by the <code>output_metadata_filename</code> argument. The function also creates a series of plots (stored in the <code>figure_path</code>) that helps to diagnose problems with the data.</p>
 <p>The snow cover algorithm relies on the insulating properties of snow, which causes soil surface temperature measurements to be constant near zero Celsius, at least in maritime mountain environments with large snowpacks like the Sierra Nevada (<a href="http://www.sciencedirect.com/science/article/pii/S0034425712003768">Raleigh et al. 2013</a>), and Cascades (<a href="http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0065008">Ford et. al. 2013</a>). In this algorithm, days with a temperature range less than a specified threshold (1 degree C in the example above), and a maximum temperature less than a specified threshold (2 degrees C in the example above), are considered to be covered by snow. The default thresholds work well for our study sites in Mt. Rainier National Park, but you should review the output to make sure that they are working properly.</p>
 <p>The best way we’ve found to do this is by reviewing the data visually. Here is an example of a plot where the algorithm seems to be performing well. You can see the near-constant temperatures recorded when the soil surface is covered by snow (indicated by red dots), and the algorithm detects these days well (indicated by blue dots at the top of the plot).</p>
@@ -302,6 +303,7 @@ clean_air_temps(input_path=paste(project_dir,&quot;temp/air&quot;,sep=&quot;&quo
                figure_path=paste(project_dir,&quot;figs/air&quot;,sep=&quot;&quot;),
                guess_tz=&quot;Etc/GMT-7&quot;,temp_spike_thresh=10,
                min_temp_thresh=-20,max_temp_thresh=50,max_temp_hr=17,
+               cf_test_params=c(40,100,-5,20),
                overwrite=TRUE)
 
 ##Merges time-series for known sensor locations.
