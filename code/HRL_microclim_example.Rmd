@@ -105,7 +105,7 @@ clean_soil_temps(input_path=paste(project_dir,"temp/soil",sep=""),
                 figure_path=paste(project_dir,"figs/soil",sep=""),
                 guess_tz="Etc/GMT-7",temp_spike_thresh=20,
                 min_temp_thresh=-20,max_temp_thresh=60,max_temp_hr=17,
-                cf_test_params=c(40,160,20,30),
+                cf_test_params=c(40,160,10,30),
                 overwrite=TRUE)
 ```
 

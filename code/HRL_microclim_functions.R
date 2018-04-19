@@ -1306,7 +1306,7 @@ clean_soil_temps <- function(input_path = NULL,
                             min_temp_thresh=-20,
                             max_temp_thresh=70,
                             max_temp_hr=17,
-                            cf_test_params=c(40,160,20,30),
+                            cf_test_params=c(40,160,10,30),
                             overwrite=TRUE){
   ##Sets up workspace
   require(xts)
