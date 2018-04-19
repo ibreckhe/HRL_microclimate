@@ -812,7 +812,7 @@ extract_snow_summaries <- function(input_path = NULL,
 
 ##      cf_test_params - 4-element numeric vector controlling tests for data that is recorded in Fahrenheit.
 ##                       Measurements are likely in Fahrenheit if the maximum temperature is greater than
-##                       [1], the maximum temperature is less than [2], the minimum temperature is less
+##                       [1], the maximum temperature is less than [2], the minimum temperature is greater than
 ##                       than [3] and the mean temperature is greater than [4].
 
 ##      overwrite - if TRUE, overwrite output files if they exist.
@@ -1289,7 +1289,7 @@ compile_airtemp_daily <- function(input_path,
 
 ##      cf_test_params - 4-element numeric vector controlling tests for data that is recorded in Fahrenheit.
 ##                       Measurements are likely in Fahrenheit if the maximum temperature is greater than
-##                       [1], the maximum temperature is less than [2], the minimum temperature is less
+##                       [1], the maximum temperature is less than [2], the minimum temperature is greater than
 ##                       than [3] and the mean temperature is greater than [4].
 
 ##      overwrite - if TRUE, overwrite output files if they exist.
